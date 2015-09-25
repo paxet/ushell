@@ -4,7 +4,7 @@
 # funcionamiento de la gestión de señales.
 
 # Añadir el directorio actual al PATH.
-PATH=.:$PATH
+PATH=.:..:../lib/:$PATH
 
 # Tratar SIGINT y SIGQUIT.
 trap "echo -n" INT QUIT

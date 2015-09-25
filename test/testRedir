@@ -4,7 +4,7 @@
 # funcionamiento de las redirecciones y tubos.
 
 # Añadir el directorio actual al PATH.
-PATH=.:$PATH
+PATH=.:../:../lib/:$PATH
 
 # Fijar umask a un valor adecuado.
 umask 022

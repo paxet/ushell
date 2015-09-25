@@ -1,4 +1,4 @@
-all: 	    ush ejecucion1 ejecucion2
+all: 	    ush ejecucion1 ejecucion2 usleep
 ejecucion1: redireccion.o ejecucion1.o
 ejecucion2: redireccion.o ejecucion2.o
 
@@ -22,7 +22,10 @@ ejecucion1.o:   ejecucion1.c defines.h redireccion.h
 ejecucion2.o:   ejecucion2.c defines.h redireccion.h
 		gcc -c $(CFLAGS) ejecucion2.c
 
+usleep.o:       lib/usleep.c
+		gcc -c $(CFLAGS) lib/usleep.c
+
 clean:
-	rm *.o ush ejecucion1 ejecucion2
+	rm *.o ush ejecucion1 ejecucion2 usleep
 	rm -rf dkko mon
 
