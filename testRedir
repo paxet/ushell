@@ -1,0 +1,115 @@
+#! /bin/bash
+# Script testRedir:
+# Debe ser ejecutado sin argumentos. Comprueba el buen 
+# funcionamiento de las redirecciones y tubos.
+
+# Añadir el directorio actual al PATH.
+PATH=.:$PATH
+
+# Fijar umask a un valor adecuado.
+umask 022
+
+# Comprobar que exista el programa ush.
+if ! type -t ush > /dev/null 2>&1
+then
+  echo No puedo encontrar al microshell en ningún directorio de PATH.
+  exit 1
+fi
+
+# Borrar el directorio empleado para las pruebas, si existiese.
+rm -rf dkko
+
+# Crear el directorio para las pruebas.
+mkdir dkko
+
+# Crear unos cuantos ficheros vacíos.
+touch dkko/fich{1,2,3,4,5}
+
+# Crear un fichero con contenido.
+ls -l dkko > dkko/sal
+
+# Crear un script que monitorice a éste.
+echo "#! /bin/bash
+trap \"exit 0\" HUP
+usleep 1500000
+echo \"Errores al implantar los tubos (hay que cerrar descriptores).\"
+kill -SIGKILL $$" > mon 
+chmod +x mon
+mon 2> /dev/null &
+
+hijo=$!
+
+# Esperar al hijo.
+usleep 100000
+
+# Probar ahora a ush.
+( 
+ush << PRUEBA
+ls -l dkko > dkko/sal2
+cat < dkko/sal2 > dkko/sal3
+cp dkko/sal2 dkko/sal5
+cat dkko/sal2 > dkko/sal5
+cat < dkko/sal2 | grep fich | wc -l > dkko/lines
+cp dkko/sal2 dkko/sal4
+cat < dkko/sal2 >> dkko/sal4
+ps | wc -l > dkko/n1
+ls -l | grep x | wc -l &
+ps | wc -l > dkko/n2
+PRUEBA
+) > /dev/null 2>&1
+
+# Terminar script hijo.
+kill -SIGHUP $hijo
+rm -rf mon
+
+# Verificar que funcione la redirección de salida.
+if ! [ -f dkko/sal2 ]
+then
+  echo No ha funcionado la redirección de salida.
+  rm -rf dkko
+  exit 2
+fi
+if ! diff dkko/sal2 dkko/sal5 > /dev/null 2>&1
+then
+  echo No ha funcionado la redirección de salida.
+  rm -rf dkko
+  exit 2
+fi
+
+# Verificar la redirección de entrada.
+if ! diff dkko/sal2 dkko/sal3 > /dev/null 2>&1
+then
+  echo No ha funcionado la redirección de entrada.
+  rm -rf dkko
+  exit 3
+fi
+
+# Verificar las tuberías.
+if [ `cat dkko/lines` -ne 5 ]
+then
+  echo No han funcionado los tubos.
+  rm -rf dkko
+  exit 4
+fi 
+
+# Verificar la redirección de salida en modo de adición.
+lo1=`wc -l dkko/sal2 | awk '{print $1}'`
+lo2=`wc -l dkko/sal4 2> /dev/null | awk '{print $1}'`
+if [ `expr ${lo2}00 / $lo1` -ne 200 ]
+then
+  echo No funciona la redirección de salida en modo de adición.
+  rm -rf dkko
+  exit 5
+fi
+
+# Verificar si hubo zombies.
+if [ "`cat dkko/n1`" != "`cat dkko/n2`" ]
+then
+  echo Los procesos no se eliminan correctamente.
+  echo Se han encontrado procesos zombies.
+  exit 6
+fi
+
+# Si todo ha ido bien, informar de ello.
+echo Las redirecciones y tubos funcionan correctamente.
+rm -rf dkko

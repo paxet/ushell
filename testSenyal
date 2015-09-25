@@ -1,0 +1,146 @@
+#! /bin/bash
+# Script testSenyal:
+# Debe ser ejecutado sin argumentos. Comprueba el buen 
+# funcionamiento de la gestión de señales.
+
+# Añadir el directorio actual al PATH.
+PATH=.:$PATH
+
+# Tratar SIGINT y SIGQUIT.
+trap "echo -n" INT QUIT
+
+# Fijar umask a un valor adecuado.
+umask 022
+
+# Comprobar que exista el programa ush.
+if ! type -t ush > /dev/null 2>&1
+then
+  echo No puedo encontrar al microshell en ningún directorio de PATH.
+  exit 1
+fi
+
+# Generar un script que avise en caso de error.
+rm -rf kko
+echo "#! /bin/bash
+trap \"exit 0\" HUP
+sleep 2
+if [ \$1 -eq 1 ]
+then echo SIGTTIN no es ignorada por ush. 
+else echo SIGTTOU no es ignorada por ush.
+fi
+kill -SIGKILL $$" > kko 
+chmod +x kko
+kko 1 2>/dev/null &
+
+# Esperar al hijo.
+sleep 1
+
+# Probar ahora a ush.
+# Primero la gestión de SIGINT, SIGQUIT y SIGTTIN
+# en el propio shell.
+( 
+ush << PRUEBA
+kill -SIGINT 0
+kill -SIGQUIT 0
+kill -SIGTTIN ush
+PRUEBA
+) > /dev/null 2>&1
+
+term=$?
+
+# Eliminar el shell hijo.
+kill -SIGHUP $! > /dev/null 2>&1
+
+# Comprobar que ush no haya muerto debido a una de
+# estas señales.
+case $term in
+130)
+  echo SIGINT no es ignorada por ush.
+  exit 2;;
+131)
+  echo SIGQUIT no es ignorada por ush.
+  exit 3;;
+esac
+
+# Probar SIGTTOU.
+# Utilizar script que avise en caso de error.
+kko 2 2> /dev/null &
+sleep 1
+
+(
+ush << PRUEBA
+kill -SIGTTOU ush
+PRUEBA
+) > /dev/null 2>&1
+
+# Eliminamos el shell-script hijo.
+kill -SIGHUP $! > /dev/null 2>&1
+rm -rf kko
+
+# Ahora probamos las señales sobre los procesos en background.
+( 
+ush << PRUEBA
+rm -rf kko2 kko3
+killall -9 sleep
+sleep 50 &
+killall -2 sleep
+ps > kko2
+killall -3 sleep
+ps > kko3
+killall -9 sleep
+PRUEBA
+) > /dev/null 2>&1
+
+# Comprobar que los procesos hijos correspondientes a órdenes
+# en segundo plano no hayan finalizado.
+if [ x`cat kko2 | grep " sleep" | wc | awk '{print $1}'` != x1 ]
+then
+  echo Gestión incorrecta de SIGINT en las órdenes en segundo plano.
+  rm -rf kko?
+  exit 6
+fi
+if [ x`cat kko3 | grep " sleep" | wc | awk '{print $1}'` != x1 ]
+then
+  echo Gestión incorrecta de SIGQUIT en las órdenes en segundo plano.
+  rm -rf kko?
+  exit 7
+fi
+
+# Ahora probamos las señales sobre los procesos en primer plano.
+killall -9 sleep 2> /dev/null 1>&2
+( 
+ush << PRUEBA
+sleep 50 
+PRUEBA
+) > /dev/null 2>&1 &
+sleep 1; killall -2 sleep
+ps | grep " sleep" | wc | awk '{print $1}' > kko2
+killall -9 sleep 2> /dev/null 1>&2
+( 
+ush << PRUEBA
+sleep 50 
+PRUEBA
+) > /dev/null 2>&1 &
+sleep 1; killall -3 sleep
+ps | grep " sleep" | wc | awk '{print $1}' > kko3
+killall -9 sleep 2> /dev/null 1>&2
+
+# Comprobar que los procesos hijos correspondientes a órdenes
+# en primer plano hayan finalizado.
+if [ x`cat kko2` != x0 ]
+then
+  echo Gestión incorrecta de SIGINT en las órdenes en primer plano.
+  rm -rf kko?
+  exit 8
+fi
+if [ x`cat kko3` != x0 ]
+then
+  echo Gestión incorrecta de SIGQUIT en las órdenes en primer plano.
+  rm -rf kko?
+  exit 9
+fi
+
+# Si todo ha funcionado bien, informar de ello.
+rm -rf kko?
+echo Gestión correcta de las señales.
+exit 0
