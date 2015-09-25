@@ -18,8 +18,8 @@ CMDFD * pipefd;
 void construye_orden(char *argv[]);
 
 int main(int argc, char *argv[])
-{ 
-  int status, fd[2];
+{
+  int status;
 
   if (argc !=4 ) {
     fprintf(stderr, "Usage: %s fich_entrada:[nombre | -] fich_salida:[nombre | -] append:[1 | 0] \n", argv[0]);
@@ -27,9 +27,9 @@ int main(int argc, char *argv[])
   }
 
   construye_orden(argv);
- 
+
   pipefd=pipeline(&cmd);
-  
+
   if (fork() == 0) { /* CODIGO DEL HIJO */
     if ((*pipefd)[0].infd != STDIN_FILENO)  dup2( (*pipefd)[0].infd, STDIN_FILENO );
     if ((*pipefd)[0].outfd!= STDOUT_FILENO) dup2( (*pipefd)[0].outfd, STDOUT_FILENO );
@@ -52,7 +52,7 @@ int main(int argc, char *argv[])
 }
 
 void construye_orden(char * argv[])
-{ 
+{
   int i,j;
 
   cmd.num_ordenes=2;
@@ -60,7 +60,7 @@ void construye_orden(char * argv[])
   cmd.num_argumentos[1]=1;
   cmd.es_background= FALSE;
 
-  for(i=0; i<PIPELINE; i++) 
+  for(i=0; i<PIPELINE; i++)
        for(j=0; j<MAXARG; j++) cmd.argumentos[i][j]=NULL;
   cmd.argumentos[0][0] = "cat";
   cmd.argumentos[1][0] = "sort";

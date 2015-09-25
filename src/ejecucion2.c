@@ -59,8 +59,7 @@ int main(int argc, char *argv[])
 }
 
 void construye_orden(char * argv[])
-{ 
-  int i,j;
+{
 
   cmd.num_ordenes=2;
   cmd.num_argumentos[0]=1;

@@ -30,27 +30,23 @@ char * getlinea(void)
     int ayuda=1;
     //char linea[MAXLINE];
     int i=0;
-    int h;
     linea[0]='\0';
     fflush(stdin);
     getcwd(buf, MAX);
     printf("%s%s", buf, PROMPT);
     while(ayuda!='\n'&& ayuda!=EOF) {
-       
         ayuda=getchar();
 	if(ayuda==EOF) {
 	    printf("ush: logout\n\n");
 	    exit(0);
 	}
 	if(i>=MAXLINE) {
-	
 	    printf("Error, se ha sobrepasado el tamaño maximo de la linea\n\a");
 	    break;
 	}
 
        linea[i]=(char)ayuda;
        i++;
-        
     }
 
     linea[i]=(char)'\0';

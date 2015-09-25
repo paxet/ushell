@@ -53,7 +53,7 @@ int ejecutar(CMD * ordenes, CMDFD *pipefd, struct sigaction *mascara)
 	    execvp(ordenes->argumentos[i][0], ordenes->argumentos[i]);
 	    fprintf(stderr, "%s Imposible ejecutar la instruccion, no se encuentra el ejecutable\n",ordenes->argumentos[i][0] );
 	    //kill(getpid(), SIGINT);
-	    
+		return ERROR;
 
 	}//fin del if
 
@@ -62,7 +62,6 @@ int ejecutar(CMD * ordenes, CMDFD *pipefd, struct sigaction *mascara)
 	  if(ordenes->es_background==0) {
 	      /*for(i=0;i<num_ordenes;i++) {
 		waitpid(pids[i], &status, 0);
-		
 	    }*/
 	    while(wait(NULL)!=pidhijo){
 	    }
@@ -81,7 +80,5 @@ int ejecutar(CMD * ordenes, CMDFD *pipefd, struct sigaction *mascara)
 	      return OK;}
 
 	}//fin del else
-
-
-
+    return OK;
 }//fin del ejecutar
